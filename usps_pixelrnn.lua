@@ -23,7 +23,7 @@ function create_pixelrnn()
 
   -- input of main reccurent layers : 7x7 conv, mask A
   print("Building input layer")
-  prnn:add( nn.MaskedConvolution(channel, hidden_dims * 2, 7, 7, "A") )
+  prnn:add( nn.MaskedConvolution2D(channel, hidden_dims * 2, 7, 7, "A") )
 
   
   -- -- main reccurent layers : DiagonalBiLSTM layers
@@ -37,7 +37,7 @@ function create_pixelrnn()
   for idx=1,out_recurrent_length do
     print("Building output layer" .. idx)
     prnn:add( nn.ReLU() )
-    prnn:add( nn.MaskedConvolution(channel, out_hidden_dims, 1, 1, "B") )
+    prnn:add( nn.MaskedConvolution1D(channel, out_hidden_dims, 1, "B") )
   end
 
 
@@ -52,10 +52,10 @@ function create_pixelrnn()
 end
 
 
----------------------------
---- CUSTOM CONVOLUTION ----
----------------------------
-local MaskedConvolution, parent = torch.class('nn.MaskedConvolution', 'nn.SpatialConvolution')
+------------------------------
+--- CUSTOM 2D CONVOLUTION ----
+------------------------------
+local MaskedConvolution2D, parent = torch.class('nn.MaskedConvolution2D', 'nn.SpatialConvolution')
 
 -- see : https://github.com/torch/nn/blob/master/doc/convolution.md
 
@@ -64,20 +64,71 @@ local MaskedConvolution, parent = torch.class('nn.MaskedConvolution', 'nn.Spatia
 -- kW: The kernel width of the convolution
 -- kH: The kernel height of the convolution
 -- mask : type of mask [A,B,None]
-function MaskedConvolution:__init(nInputPlane, nOutputPlane, kW, kH, mask, dW, dH, padW, padH)
+function MaskedConvolution2D:__init(nInputPlane, nOutputPlane, kW, kH, maskType, dW, dH, padW, padH)
   parent.__init(self, nInputPlane, nOutputPlane, kW, kH, dW, dH, padW, padH)
-  self.mask = mask
+  self.maskType = maskType
   self:applyMask()
 end
 
 -- Apply the mask, if there is one, to the weights.
 -- No mask means traditional spatial convolution then nothing more is done to the weights.
-function MaskedConvolution:applyMask()
-  if self.mask == "A" then
-    -- TODO
-  elseif self.mask == "B" then
-    -- TODO
+function MaskedConvolution2D:applyMask()
+
+  if self.maskType ~= nil then
+    local center_h = math.ceil(self.kH/2)
+    local center_w = math.ceil(self.kW/2)
+    print(center_h)
+
+    local mask = torch.Tensor(self.nOutputPlane, self.nInputPlane, self.kH, self.kW):fill(1)
+
+    -- see https://github.com/torch/torch7/blob/master/doc/tensor.md#tensor--dim1dim2--or--dim1sdim1e-dim2sdim2e-
+    mask[{ {}, {}, center_h             , {center_w+1,self.kW} }] = 0
+    mask[{ {}, {}, {center_h+1,self.kH} , {}                   }] = 0
+    
+    -- mask A is more restrictive
+    if self.maskType == "A" then
+      mask[{ {}, {}, center_h, center_w }] = 0
+    end
+
+    self.weight:cmul(mask)
+    print(self.weight)
+
   end
+
+end
+
+------------------------------
+--- CUSTOM 1D CONVOLUTION ----
+------------------------------
+local MaskedConvolution1D, parent = torch.class('nn.MaskedConvolution1D', 'nn.TemporalConvolution')
+
+-- see : https://github.com/torch/nn/blob/master/doc/convolution.md
+
+-- inputFrameSize: The input frame size expected in sequences given into forward().
+-- outputFrameSize: The output frame size the convolution layer will produce.
+-- kW: The kernel width of the convolution
+-- dW: The step of the convolution. Default is 1.
+-- mask : type of mask [A,B,None]
+function MaskedConvolution1D:__init(inputFrameSize, outputFrameSize, kW, dW, maskType)
+  parent.__init(self, inputFrameSize, outputFrameSize, kW, dW)
+  self.maskType = maskType
+  self:applyMask()
+end
+
+-- Apply the mask, if there is one, to the weights.
+-- No mask means traditional temporal convolution then nothing more is done to the weights.
+function MaskedConvolution1D:applyMask()
+
+  if self.maskType ~= nil then
+    -- TODO
+
+    -- mask A is more restrictive
+    if self.maskType == "A" then
+      -- TODO
+    end
+
+  end
+
 end
 
 
