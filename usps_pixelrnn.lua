@@ -4,10 +4,6 @@ require "math"
 require "gnuplot"
 require "image"
 
--- global variables
-learningRate = 0.01
-maxIterations = 100000
-
 function create_pixelrnn()
   model = "pixel_rnn" -- name of model [pixel_rnn, pixel_cnn]
   hidden_dims = 16 -- dimension of hidden states of LSTM or Conv layers
@@ -37,7 +33,7 @@ function create_pixelrnn()
   for idx=1,out_recurrent_length do
     print("Building output layer" .. idx)
     prnn:add( nn.ReLU() )
-    prnn:add( nn.MaskedConvolution1D(channel, out_hidden_dims, 1, "B") )
+    prnn:add( nn.MaskedConvolution1D(channel, out_hidden_dims, 1, 1, "B") )
   end
 
 
@@ -77,7 +73,7 @@ function MaskedConvolution2D:applyMask()
   if self.maskType ~= nil then
     local center_h = math.ceil(self.kH/2)
     local center_w = math.ceil(self.kW/2)
-    print(center_h)
+    -- print(center_h)
 
     local mask = torch.Tensor(self.nOutputPlane, self.nInputPlane, self.kH, self.kW):fill(1)
 
@@ -91,7 +87,7 @@ function MaskedConvolution2D:applyMask()
     end
 
     self.weight:cmul(mask)
-    print(self.weight)
+    -- print(self.weight)
 
   end
 
@@ -100,32 +96,33 @@ end
 ------------------------------
 --- CUSTOM 1D CONVOLUTION ----
 ------------------------------
-local MaskedConvolution1D, parent = torch.class('nn.MaskedConvolution1D', 'nn.TemporalConvolution')
+local MaskedConvolution1D, parent = torch.class('nn.MaskedConvolution1D', 'nn.SpatialConvolution')
 
 -- see : https://github.com/torch/nn/blob/master/doc/convolution.md
 
--- inputFrameSize: The input frame size expected in sequences given into forward().
--- outputFrameSize: The output frame size the convolution layer will produce.
+-- nInputPlane: The number of expected input planes in the image given into forward().
+-- nOutputPlane: The number of output planes the convolution layer will produce.
 -- kW: The kernel width of the convolution
--- dW: The step of the convolution. Default is 1.
+-- kH: The kernel height of the convolution
 -- mask : type of mask [A,B,None]
-function MaskedConvolution1D:__init(inputFrameSize, outputFrameSize, kW, dW, maskType)
-  parent.__init(self, inputFrameSize, outputFrameSize, kW, dW)
+function MaskedConvolution1D:__init(nInputPlane, nOutputPlane, kW, kH, maskType, dW, dH, padW, padH)
+  parent.__init(self, nInputPlane, nOutputPlane, kW, kH, dW, dH, padW, padH)
   self.maskType = maskType
   self:applyMask()
 end
 
 -- Apply the mask, if there is one, to the weights.
--- No mask means traditional temporal convolution then nothing more is done to the weights.
+-- No mask means traditional spatial convolution then nothing more is done to the weights.
 function MaskedConvolution1D:applyMask()
 
   if self.maskType ~= nil then
-    -- TODO
-
+    
     -- mask A is more restrictive
     if self.maskType == "A" then
-      -- TODO
+      self.weight:fill(0)
     end
+    
+    -- print(self.weight)
 
   end
 
@@ -157,8 +154,8 @@ function create_network(nb_outputs)
 
 end
 
--- train a Neural Netowrk
-function train_network(network, dataset)
+-- train a neural network
+function fit(network, dataset, maxIterations, learningRate)
     
   print( "Training the network" )
   local criterion = nn.ClassNLLCriterion()
@@ -177,17 +174,17 @@ function train_network(network, dataset)
 
 end
 
-function test_predictor(predictor, test_dataset, classes, classes_names)
+function predict(predictor, dataset, classes, classes_names)
 
   local mistakes = 0
   local tested_samples = 0
   
   print( "----------------------" )
   print( "Index Label Prediction" )
-  for i=1,test_dataset:size() do
+  for i=1,dataset:size() do
 
-    local input  = test_dataset[i][1]
-    local class_id = test_dataset[i][2]
+    local input  = dataset[i][1]
+    local class_id = dataset[i][2]
   
     local responses_per_class  =  predictor:forward(input) 
     local probabilites_per_class = torch.exp(responses_per_class)
@@ -214,8 +211,8 @@ function main()
 
   local training_dataset, testing_dataset, classes, classes_names = dofile('usps_dataset.lua')
   -- local network = create_network(#classes)
-  local prnn = create_pixelrnn()
-  print(prnn)
+  local network = create_pixelrnn()
+  print(network)
 
 
   -- print(testing_dataset[1][1])
@@ -223,25 +220,9 @@ function main()
   -- image.display{image=testing_dataset[1][1]:reshape(16,16), zoom=20}
 
 
-  -- train_network(network, training_dataset)
-  -- test_predictor(network, testing_dataset, classes, classes_names)
+  -- fit(network, training_dataset, 100, 0.01)
+  -- predict(network, testing_dataset, classes, classes_names)
 
 end
 
 main()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
