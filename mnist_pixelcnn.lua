@@ -5,7 +5,7 @@ require 'gnuplot'
 require 'image'
 require 'rnn'
 require 'MaskedConvolution'
-require 'RowLSTM'
+--require 'RowLSTM'
 
 ---------------------------------
 ------------ NETWORK ------------
@@ -123,6 +123,7 @@ function generate(model)
   end
 
   image.display{image=sample:reshape(imageSize,imageSize), zoom=20}
+   image.save('bonres.jpg', sample:reshape(imageSize,imageSize))
 end
 
 function complete(model, sample)
@@ -151,6 +152,7 @@ function complete(model, sample)
   end
 
   image.display{image=sample:reshape(imageSize,imageSize), zoom=20}
+   image.save('bonres_comp.jpg', sample:reshape(imageSize,imageSize))
 end
 
 --------------------------
@@ -172,6 +174,7 @@ local config = cmd:parse(arg)
 -- MNIST dataset
 local mnist = require 'mnist'
 local dataset = mnist['test' .. 'dataset']() -- test set for the moment (less memory cost)
+dataset.data = dataset.data:double():div(256)
 dataset.data = dataset.data:reshape(dataset.data:size(1), dataset.data:size(2) * dataset.data:size(3)):double()
 -- print(dataset.data:size(1))
 -- print(dataset.label[1])
@@ -181,6 +184,6 @@ local network = create_pixelcnn(config)
 print(network)
 
 -- Train
-fit(network, dataset, 50, 0.01)
+fit(network, dataset, 100, 0.01)
 generate(network)
 -- complete(network,dataset.data[5])
