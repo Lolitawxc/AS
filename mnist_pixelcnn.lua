@@ -164,6 +164,7 @@ local cmd = torch.CmdLine()
 cmd:option('-usegpu', false, 'use gpu for training')
 cmd:option('-crit', 'sigmoid', 'use sigmoid or softmax')
 cmd:option('-model', 'cnn', 'row: RowLSTM, diag:DiagonalBiLSTM, cnn: PixelCNN')
+cmd:option('-complete', false, 'complete image otherwise generate new image')
 local config = cmd:parse(arg)
 -- print(config)
 
@@ -185,5 +186,8 @@ print(network)
 
 -- Train
 fit(network, dataset, 100, 0.01)
-generate(network)
--- complete(network,dataset.data[5])
+if config.complete == false then
+    generate(network)
+else
+    complete(network,dataset.data[5])
+end

@@ -1,1 +1,1 @@
-# AS
+# ASPour lancer la generation d'image:    qlua  mnist_pixelcnn.luaPour lancer la completion d'image:    qlua mnist_pixelcnn.lua  -complete
