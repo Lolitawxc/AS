@@ -1,1 +1,1 @@
-# ASPour lancer la generation d'image:    qlua  mnist_pixelcnn.luaPour lancer la completion d'image:    qlua mnist_pixelcnn.lua  -complete
+# ASPour lancer la generation d'image:    qlua  mnist_pixelcnn.luaPour lancer la completion d'image:    qlua mnist_pixelcnn.lua  -completePour changer le nombre d'epochs (a 10000 par ex):    qlua mnist_pixelcnn.lua  -nbEpochs 10000Pour changer le learning rate (a 0.001 par ex):    qlua mnist_pixelcnn.lua  -lr 0.001

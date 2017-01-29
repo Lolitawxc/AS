@@ -165,6 +165,8 @@ cmd:option('-usegpu', false, 'use gpu for training')
 cmd:option('-crit', 'sigmoid', 'use sigmoid or softmax')
 cmd:option('-model', 'cnn', 'row: RowLSTM, diag:DiagonalBiLSTM, cnn: PixelCNN')
 cmd:option('-complete', false, 'complete image otherwise generate new image')
+cmd:option('-nbEpochs', 1000, 'Nombre d epochs, 1000 par defaut')
+cmd:option('-lr', 0.01, 'Learning rate, 0.01 par defaut')
 local config = cmd:parse(arg)
 -- print(config)
 
@@ -185,7 +187,7 @@ local network = create_pixelcnn(config)
 print(network)
 
 -- Train
-fit(network, dataset, 100, 0.01)
+fit(network, dataset, config.nbEpochs, config.lr)
 if config.complete == false then
     generate(network)
 else
